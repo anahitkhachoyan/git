@@ -1,53 +1,28 @@
-import RPi.GPIO as GPIO
+import smbus
 
-class PWM_DAC:
-    def __init__(self, gpio_pin, pwm_frequency, dynamic_range, verbose=False):
-        self.gpio_pin = gpio_pin
-        self.pwm_frequency = pwm_frequency
-        self.dynamic_range = dynamic_range
-        self.verbose = verbose
-        self.pwm = None
-        
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.gpio_pin, GPIO.OUT)
-        
-        # Создаем PWM объект сразу
-        self.pwm = GPIO.PWM(self.gpio_pin, self.pwm_frequency)
-        self.pwm.start(0)  # Запускаем с 0% заполнения
+def __init__(self, dynamic_range, address=0x61, verbose = True):
+    self.bus = smbus.SMBus(1)
+    
+    self.address = address
+    self.wm = 0x00
+    self.pds = 0x00
+    
+    self.verbose = verbose
+    self.dynamic_range = dynamic_range
 
-    def __del__(self):
-        self.cleanup()
+def deinit(self):
+    self.bus.close()
 
-    def cleanup(self):
-        if self.pwm:
-            self.pwm.stop()
-        GPIO.cleanup()
+def set_number(self, number):
+    if not isinstance(number, int):
+        print("На вход ЦАП можно подавать только целые числа")
 
-    def set_voltage(self, voltage):
-        duty = int(voltage / self.dynamic_range * 100)
-        # Ограничиваем значение от 0 до 100
-        duty = max(0, min(100, duty))
-        
-        if self.pwm:
-            self.pwm.ChangeDutyCycle(duty)
-        
-        if self.verbose:
-            print(f"Установлено напряжение: {voltage}V, коэффициент заполнения: {duty}%")
+    if not (0 <= number <= 4095):
+        print("Число выходит за разраядность MCP4752 (12 бит)")
 
-if name == "__main__":
-    try:
-        dac = PWM_DAC(12, 500, 3.100, True)
-        
-        while True:
-            try:
-                voltage = float(input("Введите напряжение в Вольтах: "))
-                dac.set_voltage(voltage)
-                
-            except ValueError:
-                print("Вы ввели не число. Попробуйте еще раз\n")
-            except KeyboardInterrupt:
-                print("\nПрограмма завершена")
-                break
-                
-    finally:
-        dac.cleanup()
+    first_byte = self.wm | self.pds | number >> 8
+    second_byte = number & 0xFF
+    self.bus.write_byte_data(0x61, first_byte, second_byte)
+
+    if self.verbose:
+        print(f"Число: {number}, отправленные по I2C данные: [0x{(self.address << 1):02X}, 0x{first_byte:02X}, 0x{second_byte:02X}]\n")
