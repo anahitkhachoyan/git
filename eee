@@ -1,24 +1,37 @@
+import RPi.GPIO as GPIO
+
 class PWM_DAC:
     def __init__(self, gpio_pin, pwm_frequency, dynamic_range, verbose = False):
-        ...
-        
+        self.gpio_pin = gpio_pin
+        self.pwm_frequency = pwm_frequency
+        self.dynamic_range = dynamic_range
+        self.verbose = verbose
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.gpio_pin, GPIO.OUT)
+
     def deinit(self):
-        ...
+        GPIO.output(self.gpio_pin, 0)
+        GPIO.cleanup()
 
     def set_voltage(self, voltage):
-        ...
+        duty = int(voltage / self.dynamic_range * 100)
+        pwm = GPIO.PWM(self.gpio_pin, self.pwm_frequency)
+        pwm.start(duty)
 
-if __name__ == "__main__":
+if name == "__main__":
     try:
-        dac = PWM_DAC(12, 500, 3.290, True)
-        
+        dac = PWM_DAC(12, 500, 3.157, True)
+
         while True:
             try:
+                dynamic_range = 3.157
                 voltage = float(input("Введите напряжение в Вольтах: "))
                 dac.set_voltage(voltage)
+                number = float(voltage / dynamic_range * 100)
+                print(f"Коэффициент заполнения: {number}")
 
             except ValueError:
                 print("Вы ввели не число. Попробуйте ещё раз\n")
-
     finally:
         dac.deinit()
