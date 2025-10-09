@@ -2,38 +2,20 @@ import r2r_dac as r2r
 import signal_generator as sg
 import time
 
-# 2. Создайте переменные для хранения параметров генерируемого сигнала
 amplitude = 3.2
 signal_frequency = 10
 sampling_frequency = 1000
 
-# 3. В блоке try создайте объект класса для управления R2R-LIATI
 try:
-    # Создаем объект для управления R2R-DAC
     dac = r2r.R2RDAC()
-    
     start_time = time.time()
     
-    # 4. В бесконечном цикле генерируйте сигнал при помощи функций из модуля signal_generator 
-    # и подавайте напряжения на mini OUT блока 8-bit DAC
     while True:
-        # Вычисляем текущее время относительно начала генерации
         current_time = time.time() - start_time
-        
-        # Получаем нормализованную амплитуду сигнала
         normalized_amplitude = sg.get_sin_views_amplitude(signal_frequency, current_time)
-        
-        # Масштабируем амплитуду на заданное значение
         signal_amplitude = normalized_amplitude * amplitude
-        
-        # Подаем напряжение на DAC
         dac.output(signal_amplitude)
-        
-        # Ждем до следующей точки дискретизации
         sg.wait_for_sampling_period(sampling_frequency)
 
-# 5. В блоке finally вызовите «деструктор» объекта класса управления R2R-LIATI
 finally:
-    # Завершаем работу с DAC (очистка, сброс и т.д.)
     dac.cleanup()
-    print("Работа с R2R-DAC завершена, ресурсы освобождены")
