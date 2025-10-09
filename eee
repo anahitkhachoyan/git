@@ -7,7 +7,7 @@ signal_frequency = 10
 sampling_frequency = 1000
 
 try:
-    dac = r2r.R2RDAC()
+    dac = r2r.R2RDAC([12, 20, 21, 25, 26, 17, 27, 22])
     start_time = time.time()
     
     while True:
@@ -17,5 +17,9 @@ try:
         dac.output(signal_amplitude)
         sg.wait_for_sampling_period(sampling_frequency)
 
+except Exception as e:
+    print(f"Ошибка: {e}")
 finally:
-    dac.cleanup()
+    if 'dac' in locals():
+        dac.cleanup()
+    print("Завершение работы")
