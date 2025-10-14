@@ -1,6 +1,6 @@
 import numpy
 import time
-import pwm_dac
+import pwn_dac
 import signal_generator as sg
 
 amplitude = 1.2
@@ -12,13 +12,13 @@ if name == "__main__":
     try:
         while True:
             try:
-                voltage = amplitude * sg.get_sin_wave_amplitude(signal_frequency, tim)
-                pwm_dac.dac.set_voltage(voltage)
+                voltage = amplitude * sg.get_sin_wawe_amplitude(signal_frequency, tim)
+                pwn_dac.dac.set_voltage(voltage)
                 sg.wait_for_sampling_period(sampling_frequency)
                 tim = tim + 1 / sampling_frequency
-
+                
             except ValueError:
-                print("Вы ввели не число. Попробуйте ещё раз \n")
-
+                print("Вы ввели не число. Попробуйте еще раз")
+                
     finally:
-        pwm_dac.dac.deinit()
+        pwn_dac.dac.deinit()
