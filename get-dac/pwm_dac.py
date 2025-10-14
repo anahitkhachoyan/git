@@ -23,7 +23,7 @@ class PWM_DAC:
         GPIO.cleanup()
 
     def set_voltage(self, voltage):
-        duty = int(voltage / self.dynamic_range * 100)
+        duty = voltage / self.dynamic_range * 100
         duty = max(0, min(100, duty))
         
         if self.pwm:
