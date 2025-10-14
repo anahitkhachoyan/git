@@ -1,6 +1,32 @@
 import time
-import pwm_dac
+import math
+import RPi.GPIO as GPIO
 import signal_generator as sg
+
+class PwmDac:
+    def __init__(self, pin=18, frequency=1000):
+        self.pin = pin
+        self.frequency = frequency
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.pin, GPIO.OUT)
+        
+        self.pwm = GPIO.PWM(self.pin, self.frequency)
+        self.pwm.start(0)  # Запуск с 0% заполнения
+        
+        print(f"PWM DAC инициализирован на пине {pin}")
+    
+    def set_voltage(self, voltage):
+        duty_cycle = 50 + (voltage / 1.2) * 50  # Центрируем вокруг 50%
+        
+        duty_cycle = max(0, min(100, duty_cycle))
+        
+        self.pwm.ChangeDutyCycle(duty_cycle)
+    
+    def deinit(self):
+        self.pwm.stop()
+        GPIO.cleanup()
+        print("PWM DAC выключен")
 
 amplitude = 1.2
 signal_frequency = 10.0
@@ -8,9 +34,11 @@ sampling_frequency = 1000.0
 tim = 0.0
 
 if name == "__main__":
-    dac = pwm_dac.PwmDac()
+    dac = PwmDac(pin=18, frequency=1000)  
     
     try:
+        print("Генерация синусоиды. Нажмите Ctrl+C для остановки.")
+        
         while True:
             voltage = amplitude * sg.get_sin_wave_amplitude(signal_frequency, tim)
             dac.set_voltage(voltage)
@@ -18,7 +46,10 @@ if name == "__main__":
             tim += 1 / sampling_frequency
             
     except KeyboardInterrupt:
-        print("Остановлено")
+        print("\nПрограмма остановлена")
+        
+    except Exception as e:
+        print(f"Ошибка: {e}")
         
     finally:
         dac.deinit()
