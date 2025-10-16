@@ -9,6 +9,7 @@ tim = 0.0
 
 if __name__ == "__main__":
     try:
+        
         while True:
             try:
                 voltage = amplitude * sg.get_sin_wave_amplitude(signal_frequency, tim)
