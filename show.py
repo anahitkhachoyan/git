@@ -1,12 +1,12 @@
-import numpy as np
-import time
+class R2R_ADC:
+    def __init__(self, dynamic_range, compare_time = 0.01, verbose = False):
+        self.dynamic_range = dynamic_range
+        self.verbose = verbose
+        self.compare_time = compare_time
+        
+        self.bits_gpio = [26, 20, 19, 16, 13, 12, 25, 11]
+        self.comp_gpio = 21
 
-def get_sin_wave_amplitude(freq, time_val):
-    basic_sin = np.sin(2 * np.pi * freq * time_val)
-    shifted_sin = basic_sin + 1
-    normal_sin = shifted_sin / 2
-    return normal_sin
-
-def wait_for_sampling_period(sampling_frequency):
-    sampling_period = 1.0 / sampling_frequency 
-    time.sleep(sampling_period)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.bits_gpio, GPIO.OUT, initial = 0)
+        GPIO.setup(self.comp_gpio, GPIO.IN)
