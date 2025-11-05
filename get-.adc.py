@@ -1,68 +1,43 @@
-#r2r_adc.py
-import RPi.GPIO as IO
+#mcp3021_driver.py
+import smbus as i2c
 import time
-class R2R_ADC:
-    def __init__(self, dynamic_range, compare_time = 0.01, verbose = False):
-        self.dynamic_range = dynamic_range
+class MCP3021:
+    def __init__(self, dynamic_range, verbose = False):
+        self.bus = i2c.SMBus(1)
         self.verbose = verbose
-        self.compare_time=compare_time
-        self.bits_gpio=[26, 20, 19, 16, 13, 12, 25, 11]
-        self.comp_gpio=21
-        IO.setmode(IO.BCM)
-        IO.setup(self.bits_gpio, IO.OUT, initial = 0)
-        IO.setup(self.comp_gpio, IO.IN)
-
+        self.dynamic_range=dynamic_range
+        self.address=0x4D
     def deinit(self):
-        IO.output(self.bits_gpio, 0)
-        IO.cleanup()
+        self.bus.close()
+    def get_number(self):
+        data = self.bus.read_word_data(self.address, 0)
+        lower_data_byte = data >> 8
+        upper_data_byte = data & 0xFF
+        number = (upper_data_byte << 6) | (lower_data_byte >> 2)
+        if self.verbose:
+            print(f"Принятые данные {data}, старший бит {upper_data_byte}, младший бит {lower_data_byte}, число {number}")
+        return number    
+    def get_voltage(self):
+        return self.get_number()/1023*self.dynamic_range
 
-    def set_number(self, number):
-        return [int(element) for element in bin(number)[2:].zfill(8)]
-    
-    def number_to_dac(self, N):
-        v_ar = self.set_number(N)
-        for i in self.bits_gpio:
-                IO.output(i, v_ar[self.bits_gpio.index(i)])
-    def sequental_counting_adc(self):
-        for i in range(256):
-            self.number_to_dac(i)
-            if (IO.input(self.comp_gpio)>0):
-                break
-        time.sleep(self.compare_time)
-        return i
-    def get_sc_voltage(self):
-        return self.sequental_counting_adc()/255*self.dynamic_range
-    
 if (__name__ == "__main__"):
     try:
-        adc=R2R_ADC(3.29)
+        adc=MCP3021(5.18)
         while True:
-            V=adc.get_sc_voltage()
+            V=adc.get_voltage()
             print(V)
+            time.sleep(1)
             
     finally:
         adc.deinit()
 
-#adc_plot.py
-import matplotlib.pyplot as plt
-def plot_voltage_vs_time(time, voltage, max_voltage):
-    plt.figure(figsize=(10,6))
-    plt.plot(time, voltage)
-    plt.xlabel("Время")
-    plt.ylabel("Напряжение")
-    plt.grid(True, which="major", linestyle="-")
-    plt.grid(True, which="minor", linestyle="--", linewidth=0.5)
-    plt.ylim(0, max_voltage)
-    plt.minorticks_on()
-    plt.show()
-
-#r2r-sc.py
+#mcp.py (updated)
 import RPi.GPIO as IO
 import time
-import r2r_adc as r2r
+import mcp3021_driver as mcp
 import adc_plot as plt
 
-adc = r2r.R2R_ADC(3.29)
+adc = mcp.MCP3021(5.18)
 time_values = []
 voltage_values = []
 duration = 3.0
@@ -71,162 +46,9 @@ try:
     now_time=time.time()
     while now_time-start_time<duration:
         now_time=time.time()
-        voltage_values.append(adc.get_sc_voltage())
+        voltage_values.append(adc.get_voltage())
         time_values.append(now_time-start_time)
-    plt.plot_voltage_vs_time(time_values, voltage_values, 3.29)
-finally:
-        adc.deinit()
-
-#adc_plot.py (updated)
-import matplotlib.pyplot as plt
-def plot_voltage_vs_time(time, voltage, max_voltage):
-    plt.figure(figsize=(10,6))
-    plt.plot(time, voltage)
-    plt.xlabel("Время")
-    plt.ylabel("Напряжение")
-    plt.grid(True, which="major", linestyle="-")
-    plt.grid(True, which="minor", linestyle="--", linewidth=0.5)
-    plt.ylim(0, max_voltage)
-    plt.minorticks_on()
-    plt.show()
-def plot_sampling_period_hist(time):
-    sampling_periods=[]
-    for i in range(len(time)-1):
-        sampling_periods.append(time[i+1]-time[i])
-    plt.figure(figsize=(10,6))
-    plt.hist(sampling_periods)
-    plt.title("Распределение количества измерений по их продолжительности")
-    plt.xlabel("Время")
-    plt.ylabel("Количество измерений")
-    plt.xlim(0, 0.06)
-    plt.grid(True, which="major", linestyle="-")
-    plt.grid(True, which="minor", linestyle="--", linewidth=0.5)
-    plt.minorticks_on()
-    plt.show()
-
-#r2r-sc.py (updated)
-import RPi.GPIO as IO
-import time
-import r2r_adc as r2r
-import adc_plot as plt
-
-adc = r2r.R2R_ADC(3.29)
-time_values = []
-voltage_values = []
-duration = 3.0
-try:
-    start_time=time.time()
-    now_time=time.time()
-    while now_time-start_time<duration:
-        now_time=time.time()
-        voltage_values.append(adc.get_sc_voltage())
-        time_values.append(now_time-start_time)
-    plt.plot_voltage_vs_time(time_values, voltage_values, 3.29)
+    plt.plot_voltage_vs_time(time_values, voltage_values, 5.18)
     plt.plot_sampling_period_hist(time_values)
 finally:
         adc.deinit()
-
-#r2r_adc.py (updated)
-import RPi.GPIO as IO
-import time
-class R2R_ADC:
-    def __init__(self, dynamic_range, compare_time = 0.01, verbose = False):
-        self.dynamic_range = dynamic_range
-        self.verbose = verbose
-        self.compare_time=compare_time
-        self.bits_gpio=[26, 20, 19, 16, 13, 12, 25, 11]
-        self.comp_gpio=21
-        IO.setmode(IO.BCM)
-        IO.setup(self.bits_gpio, IO.OUT, initial = 0)
-        IO.setup(self.comp_gpio, IO.IN)
-
-    def deinit(self):
-        IO.output(self.bits_gpio, 0)
-        IO.cleanup()
-
-    def set_number(self, number):
-        return [int(element) for element in bin(number)[2:].zfill(8)]
-    
-    def number_to_dac(self, N):
-        v_ar = self.set_number(N)
-        for i in self.bits_gpio:
-                IO.output(i, v_ar[self.bits_gpio.index(i)])
-    def sequental_counting_adc(self):
-        for i in range(256):
-            self.number_to_dac(i)
-            if (IO.input(self.comp_gpio)>0):
-                break
-        time.sleep(self.compare_time)
-        return i
-    def get_sc_voltage(self):
-        return self.sequental_counting_adc()/255*self.dynamic_range
-    def successive_approximation_adc(self):
-        self.right=256
-        self.left=0
-        while(self.right-self.left)>1:
-            self.mid=int((self.right+self.left)/2)
-            self.number_to_dac(self.mid)
-            if IO.input(self.comp_gpio)>0:
-                self.right=self.mid
-            else:
-                self.left=self.mid
-        time.sleep(self.compare_time)
-        return self.left
-    def get_sar_voltage(self):
-        return self.successive_approximation_adc()/255*self.dynamic_range
-    
-
-
-if (__name__ == "__main__"):
-    try:
-        adc=R2R_ADC(3.29)
-        while True:
-            V=adc.get_sar_voltage()
-            print(V)
-            
-    finally:
-        adc.deinit()
-
-#r2r-sar.py
-import RPi.GPIO as IO
-import time
-import r2r_adc as r2r
-import adc_plot as plt
-
-adc = r2r.R2R_ADC(3.29)
-time_values = []
-voltage_values = []
-duration = 3.0
-try:
-    start_time=time.time()
-    now_time=time.time()
-    while now_time-start_time<duration:
-        now_time=time.time()
-        voltage_values.append(adc.get_sar_voltage())
-        time_values.append(now_time-start_time)
-    plt.plot_voltage_vs_time(time_values, voltage_values, 3.29)
-    plt.plot_sampling_period_hist(time_values)
-finally:
-        adc.deinit()
-
-#r2r-sar.py (updated)
-import RPi.GPIO as IO
-import time
-import r2r_adc as r2r
-import adc_plot as plt
-
-adc = r2r.R2R_ADC(3.29)
-time_values = []
-voltage_values = []
-duration = 3.0
-try:
-    start_time=time.time()
-    now_time=time.time()
-    while now_time-start_time<duration:
-        now_time=time.time()
-        voltage_values.append(adc.get_sar_voltage())
-        time_values.append(now_time-start_time)
-    plt.plot_voltage_vs_time(time_values, voltage_values, 3.29)
-finally:
-        adc.deinit()
-
